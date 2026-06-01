@@ -6,3 +6,4 @@ Static marketing site for Aegis Compliance Solutions.
 
 The site is configured for Netlify. The publish directory is the repository root.
 Production deploys publish from the `main` branch.
+GitHub push events trigger Netlify builds through a repository webhook.
