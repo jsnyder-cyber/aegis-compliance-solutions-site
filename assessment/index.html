@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>CMMC OSC Readiness | Aegis Compliance Solutions</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">CMMC Assessment Readiness</p>
+        <h1 id="osc-name">OSC Body of Evidence</h1>
+      </div>
+      <div class="header-actions">
+        <a class="secondary-action" href="../">Aegis Home</a>
+        <span id="scan-state" class="timestamp">Ready</span>
+        <button id="scan-button" class="primary-action" type="button">
+          <span aria-hidden="true">▶</span>
+          Refresh Data
+        </button>
+        <button id="refresh-button" type="button" aria-label="Refresh readiness data">
+          <span aria-hidden="true">↻</span>
+        </button>
+      </div>
+    </header>
+
+    <main>
+      <section class="readiness-band">
+        <div class="score-panel">
+          <div class="score-ring" id="score-ring">
+            <span id="ready-percent">0%</span>
+          </div>
+          <div>
+            <p class="section-label">Overall Readiness</p>
+            <h2 id="readiness-title">Loading evidence status</h2>
+            <p id="readiness-copy">The latest evidence status will appear here after the scan results load.</p>
+            <p id="updated-at" class="inline-timestamp">Updated...</p>
+          </div>
+        </div>
+        <div class="metrics-grid">
+          <article>
+            <span id="metric-total">0</span>
+            <p>Total Requirements</p>
+          </article>
+          <article>
+            <span id="metric-sufficient">0</span>
+            <p>Sufficient</p>
+          </article>
+          <article>
+            <span id="metric-review">0</span>
+            <p>Needs Review</p>
+          </article>
+          <article>
+            <span id="metric-gaps">0</span>
+            <p>Gaps</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="toolbar" aria-label="Evidence filters">
+        <label class="search-field">
+          <span>Search Requirements</span>
+          <input id="search-input" type="search" placeholder="Requirement, domain, evidence, or gap">
+        </label>
+        <div class="segmented" role="tablist" aria-label="Status filter">
+          <button class="active" type="button" data-filter="all">All</button>
+          <button type="button" data-filter="sufficient">Sufficient</button>
+          <button type="button" data-filter="review">Review</button>
+          <button type="button" data-filter="gaps">Gaps</button>
+          <button type="button" data-filter="notStarted">Not Started</button>
+        </div>
+      </section>
+
+      <section id="domain-view" class="domain-view" aria-label="CMMC domains"></section>
+
+      <section id="requirement-view" class="requirement-view hidden" aria-label="Domain requirements">
+        <div class="section-header">
+          <button id="back-button" class="secondary-action" type="button">
+            <span aria-hidden="true">←</span>
+            Domains
+          </button>
+          <div>
+            <p class="section-label" id="domain-code">Domain</p>
+            <h2 id="domain-title">Requirements</h2>
+          </div>
+        </div>
+        <div id="requirements-list" class="requirements-list"></div>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
