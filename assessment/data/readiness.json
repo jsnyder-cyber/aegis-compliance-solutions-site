@@ -1,0 +1,46 @@
+{
+  "oscName": "OSC CMMC Readiness",
+  "updatedAt": "2026-06-26T12:59:09.950Z",
+  "summary": {
+    "totalPractices": 3,
+    "readyPercent": 33,
+    "sufficient": 1,
+    "review": 1,
+    "gaps": 1
+  },
+  "practices": [
+    {
+      "id": "AC.L2-3.1.1",
+      "title": "Limit system access",
+      "status": "Sufficient",
+      "evidence": "Access Policy.pdf",
+      "folder": "Access Control",
+      "owner": "IT",
+      "updated": "2026-06-26",
+      "gap": "",
+      "confidence": 0.95
+    },
+    {
+      "id": "CM.L2-3.4.1",
+      "title": "Baseline configurations",
+      "status": "Gap",
+      "evidence": "Baseline.csv",
+      "folder": "Configuration Management",
+      "owner": "Infra",
+      "updated": "2026-06-26",
+      "gap": "Approval cadence missing",
+      "confidence": 0.77
+    },
+    {
+      "id": "IR.L2-3.6.1",
+      "title": "Incident handling",
+      "status": "Needs Review",
+      "evidence": "IR Plan.pdf",
+      "folder": "Incident Response",
+      "owner": "Security",
+      "updated": "2026-06-26",
+      "gap": "Exercise evidence pending",
+      "confidence": 0.71
+    }
+  ]
+}
