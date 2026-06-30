@@ -2,6 +2,9 @@
 
 Static marketing site for Aegis Compliance Solutions.
 
+The CMMC readiness portal is published from `assessment/` and uses bundled
+static JSON files in `assessment/data/`.
+
 ## Deploy
 
 The site is configured for Netlify. The publish directory is the repository root.

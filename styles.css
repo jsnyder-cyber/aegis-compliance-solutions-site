@@ -261,6 +261,13 @@ h3 {
   background: var(--white);
 }
 
+.text-link {
+  display: inline-flex;
+  margin-top: 8px;
+  color: var(--teal);
+  font-weight: 800;
+}
+
 .split {
   display: grid;
   grid-template-columns: minmax(0, 0.9fr) minmax(340px, 0.7fr);
