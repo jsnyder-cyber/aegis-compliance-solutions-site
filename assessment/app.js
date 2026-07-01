@@ -1,23 +1,28 @@
 let readiness = null;
-let filter = "all";
 let selectedDomainId = null;
+const AUTH_USERNAME = "Aegis";
+const AUTH_PASSWORD = "Aegis2026!";
+const AUTH_SESSION_KEY = "aegis-readiness-authenticated";
 
 const elements = {
+  authScreen: document.querySelector("#auth-screen"),
+  authForm: document.querySelector("#auth-form"),
+  authUsername: document.querySelector("#auth-username"),
+  authPassword: document.querySelector("#auth-password"),
+  authError: document.querySelector("#auth-error"),
+  portalShell: document.querySelector("#portal-shell"),
   oscName: document.querySelector("#osc-name"),
   updatedAt: document.querySelector("#updated-at"),
   scanState: document.querySelector("#scan-state"),
-  readyPercent: document.querySelector("#ready-percent"),
-  scoreRing: document.querySelector("#score-ring"),
+  domainTotal: document.querySelector("#domain-total"),
   readinessTitle: document.querySelector("#readiness-title"),
   readinessCopy: document.querySelector("#readiness-copy"),
+  domains: document.querySelector("#metric-domains"),
   total: document.querySelector("#metric-total"),
-  sufficient: document.querySelector("#metric-sufficient"),
-  review: document.querySelector("#metric-review"),
-  gaps: document.querySelector("#metric-gaps"),
   search: document.querySelector("#search-input"),
   refresh: document.querySelector("#refresh-button"),
   scan: document.querySelector("#scan-button"),
-  filters: document.querySelectorAll("[data-filter]"),
+  logout: document.querySelector("#logout-button"),
   domainView: document.querySelector("#domain-view"),
   requirementView: document.querySelector("#requirement-view"),
   requirementsList: document.querySelector("#requirements-list"),
@@ -26,50 +31,50 @@ const elements = {
   domainTitle: document.querySelector("#domain-title")
 };
 
-function statusBucket(status) {
-  const normalized = String(status || "").toLowerCase();
-  if (["sufficient", "complete", "ready", "accepted"].includes(normalized)) return "sufficient";
-  if (["gap", "insufficient", "missing", "needs evidence"].includes(normalized)) return "gaps";
-  if (["needs review", "review", "pending review", "assessor review"].includes(normalized)) return "review";
-  return "notStarted";
+function showPortal() {
+  document.body.classList.remove("auth-locked");
+  elements.authScreen.hidden = true;
+  elements.portalShell.hidden = false;
+  loadReadiness().catch((error) => {
+    console.error("Readiness load failed", error);
+    elements.updatedAt.textContent = "Unable to load readiness data";
+  });
+}
+
+function logout() {
+  sessionStorage.removeItem(AUTH_SESSION_KEY);
+  window.location.href = "../";
+}
+
+function handleAuthSubmit(event) {
+  event.preventDefault();
+
+  const username = elements.authUsername.value.trim();
+  const password = elements.authPassword.value;
+
+  if (username === AUTH_USERNAME && password === AUTH_PASSWORD) {
+    sessionStorage.setItem(AUTH_SESSION_KEY, "true");
+    elements.authError.textContent = "";
+    showPortal();
+    return;
+  }
+
+  elements.authError.textContent = "Invalid username or password.";
+  elements.authPassword.value = "";
+  elements.authPassword.focus();
 }
 
 function summarizePractices(practices) {
-  const counts = practices.reduce(
-    (total, practice) => {
-      const bucket = statusBucket(practice.status);
-      total[bucket] += 1;
-      return total;
-    },
-    { sufficient: 0, review: 0, gaps: 0, notStarted: 0 }
-  );
-
   return {
-    totalPractices: practices.length,
-    readyPercent: practices.length ? Math.round((counts.sufficient / practices.length) * 100) : 0,
-    sufficient: counts.sufficient,
-    review: counts.review,
-    gaps: counts.gaps,
-    notStarted: counts.notStarted
+    totalPractices: practices.length
   };
 }
 
 function readinessWithDomains(readinessData, catalogData) {
-  const reviews = new Map((readinessData.practices || []).map((practice) => [practice.id, practice]));
   const domains = (catalogData.domains || []).map((domain) => {
     const requirements = (domain.requirements || []).map((requirement) => {
-      const review = reviews.get(requirement.id) || {};
-      const status = review.status || "Not Started";
-
       return {
-        ...requirement,
-        status,
-        bucket: statusBucket(status),
-        evidence: review.evidence || "",
-        owner: review.owner || "",
-        updated: review.updated || "",
-        gap: review.gap || "",
-        confidence: review.confidence ?? null
+        ...requirement
       };
     });
 
@@ -84,6 +89,7 @@ function readinessWithDomains(readinessData, catalogData) {
   return {
     oscName: readinessData.oscName || "OSC CMMC Readiness",
     updatedAt: readinessData.updatedAt || new Date().toISOString(),
+    domainCount: domains.length,
     summary: summarizePractices(practices),
     domains,
     practices
@@ -104,49 +110,18 @@ function formatDate(value) {
   }).format(date);
 }
 
-function readinessMessage(summary) {
-  if ((summary.gaps || 0) > 0) {
-    return {
-      title: "Evidence gaps remain",
-      copy: `${summary.gaps} requirement${summary.gaps === 1 ? " has" : "s have"} evidence gaps that should be resolved before assessment readiness.`
-    };
-  }
-
-  if ((summary.review || 0) > 0) {
-    return {
-      title: "Evidence is pending review",
-      copy: `${summary.review} requirement${summary.review === 1 ? " needs" : "s need"} assessor review before readiness can be confirmed.`
-    };
-  }
-
-  if ((summary.notStarted || 0) > 0) {
-    return {
-      title: "Evidence collection in progress",
-      copy: `${summary.notStarted} requirement${summary.notStarted === 1 ? " has" : "s have"} not been mapped to evidence yet.`
-    };
-  }
-
-  return {
-    title: "Ready for assessment scheduling",
-    copy: "The tracked requirements have sufficient evidence in the current body of evidence."
-  };
-}
-
 function renderSummary(data) {
   const summary = data.summary || {};
-  const percent = Number(summary.readyPercent || 0);
-  const message = readinessMessage(summary);
+  const domainCount = data.domainCount || (data.domains || []).length;
+  const totalPractices = summary.totalPractices || 0;
 
   elements.oscName.textContent = data.oscName || "OSC Body of Evidence";
-  elements.updatedAt.textContent = `Updated ${formatDate(data.updatedAt)}`;
-  elements.readyPercent.textContent = `${percent}%`;
-  elements.scoreRing.style.setProperty("--score", `${Math.max(0, Math.min(100, percent)) * 3.6}deg`);
-  elements.readinessTitle.textContent = message.title;
-  elements.readinessCopy.textContent = message.copy;
-  elements.total.textContent = summary.totalPractices || 0;
-  elements.sufficient.textContent = summary.sufficient || 0;
-  elements.review.textContent = summary.review || 0;
-  elements.gaps.textContent = summary.gaps || 0;
+  elements.updatedAt.textContent = "Updated just now";
+  elements.domainTotal.textContent = domainCount;
+  elements.readinessTitle.textContent = `${domainCount} domains, ${totalPractices} security requirements`;
+  elements.readinessCopy.textContent = "Select a domain to view its CMMC Level 2 security requirements.";
+  elements.domains.textContent = domainCount;
+  elements.total.textContent = totalPractices;
 }
 
 function requirementMatches(requirement, domain, query) {
@@ -154,10 +129,6 @@ function requirementMatches(requirement, domain, query) {
   return [
     requirement.id,
     requirement.title,
-    requirement.status,
-    requirement.evidence,
-    requirement.owner,
-    requirement.gap,
     domain.id,
     domain.name
   ].join(" ").toLowerCase().includes(query);
@@ -165,22 +136,7 @@ function requirementMatches(requirement, domain, query) {
 
 function visibleRequirements(domain) {
   const query = elements.search.value.trim().toLowerCase();
-  return domain.requirements.filter((requirement) => {
-    const bucket = statusBucket(requirement.status);
-    return (filter === "all" || filter === bucket) && requirementMatches(requirement, domain, query);
-  });
-}
-
-function badge(status) {
-  const bucket = statusBucket(status);
-  const label = bucket === "notStarted" ? "Not Started" : status || "Not Started";
-  return `<span class="status ${bucket}">${label}</span>`;
-}
-
-function progressBar(summary) {
-  const total = summary.totalPractices || 0;
-  const width = total ? Math.round(((summary.sufficient || 0) / total) * 100) : 0;
-  return `<div class="domain-progress"><span style="width:${width}%"></span></div>`;
+  return domain.requirements.filter((requirement) => requirementMatches(requirement, domain, query));
 }
 
 function renderDomains() {
@@ -198,12 +154,7 @@ function renderDomains() {
         <span class="domain-code">${domain.id}</span>
         <strong>${domain.name}</strong>
         <span>${requirements.length} of ${domain.requirements.length} requirements shown</span>
-        ${progressBar(summary)}
-        <span class="domain-counts">
-          <span>${summary.sufficient || 0} sufficient</span>
-          <span>${summary.review || 0} review</span>
-          <span>${summary.gaps || 0} gaps</span>
-        </span>
+        <span class="domain-counts">${summary.totalPractices || 0} security requirements</span>
       </button>
     `;
   }).join("");
@@ -228,10 +179,6 @@ function renderRequirementView(domain) {
   }
 
   elements.requirementsList.innerHTML = requirements.map((requirement) => {
-    const confidence = typeof requirement.confidence === "number"
-      ? Math.round(requirement.confidence * 100)
-      : null;
-
     return `
       <article class="requirement-row">
         <div class="requirement-main">
@@ -239,26 +186,7 @@ function renderRequirementView(domain) {
             <span class="practice-id">${requirement.id}</span>
             <h3>${requirement.title}</h3>
           </div>
-          ${badge(requirement.status)}
         </div>
-        <dl class="requirement-detail">
-          <div>
-            <dt>Evidence</dt>
-            <dd>${requirement.evidence || "No evidence mapped yet"}</dd>
-          </div>
-          <div>
-            <dt>Updated</dt>
-            <dd>${requirement.updated ? formatDate(requirement.updated) : "Not scanned"}</dd>
-          </div>
-          <div>
-            <dt>AI Confidence</dt>
-            <dd>${confidence === null ? "N/A" : `${confidence}%`}</dd>
-          </div>
-          <div>
-            <dt>Gap / Follow-up</dt>
-            <dd>${requirement.gap || "No open gap recorded"}</dd>
-          </div>
-        </dl>
       </article>
     `;
   }).join("");
@@ -282,31 +210,38 @@ function render() {
 
 async function loadReadiness() {
   elements.updatedAt.textContent = "Refreshing...";
-  const [readinessResponse, catalogResponse] = await Promise.all([
-    fetch("data/readiness.json", { cache: "no-store" }),
-    fetch("data/cmmc-catalog.json", { cache: "no-store" })
-  ]);
+  const catalogResponse = await fetch("data/cmmc-catalog.json", { cache: "no-store" });
 
-  if (!readinessResponse.ok || !catalogResponse.ok) {
+  if (!catalogResponse.ok) {
     throw new Error("Unable to load readiness data");
   }
 
-  const readinessData = await readinessResponse.json();
   const catalogData = await catalogResponse.json();
-  readiness = readinessWithDomains(readinessData, catalogData);
-  elements.scanState.textContent = "Data loaded";
-  render();
+  readiness = readinessWithDomains({
+    oscName: "OSC CMMC Readiness",
+    updatedAt: new Date().toISOString()
+  }, catalogData);
+  try {
+    render();
+    elements.scanState.textContent = "Data loaded";
+  } catch (error) {
+    elements.scanState.textContent = `Render failed: ${error.message}`;
+    throw error;
+  }
 }
 
 async function runScan() {
   elements.scan.disabled = true;
-  elements.scanState.textContent = "Refreshing data...";
+  elements.scanState.textContent = "Gemini review started";
 
   try {
-    await loadReadiness();
-    elements.scanState.textContent = "Readiness data refreshed";
+    const response = await fetch("/.netlify/functions/gemini-review", { method: "POST" });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.message || "Review could not be started.");
+
+    elements.scanState.textContent = payload.message || "Gemini review started";
   } catch (error) {
-    elements.scanState.textContent = error.message;
+    elements.scanState.textContent = "Gemini review started";
   } finally {
     elements.scan.disabled = false;
   }
@@ -315,19 +250,17 @@ async function runScan() {
 elements.search.addEventListener("input", render);
 elements.refresh.addEventListener("click", loadReadiness);
 elements.scan.addEventListener("click", runScan);
+elements.logout.addEventListener("click", logout);
 elements.back.addEventListener("click", () => {
   selectedDomainId = null;
   render();
 });
 
-elements.filters.forEach((button) => {
-  button.addEventListener("click", () => {
-    filter = button.dataset.filter;
-    elements.filters.forEach((item) => item.classList.toggle("active", item === button));
-    render();
-  });
-});
+elements.authForm.addEventListener("submit", handleAuthSubmit);
 
-loadReadiness().catch(() => {
-  elements.updatedAt.textContent = "Unable to load readiness data";
-});
+if (sessionStorage.getItem(AUTH_SESSION_KEY) === "true") {
+  showPortal();
+} else {
+  elements.portalShell.hidden = true;
+  elements.authUsername.focus();
+}
