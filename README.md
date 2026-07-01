@@ -3,7 +3,8 @@
 Static marketing site for Aegis Compliance Solutions.
 
 The CMMC readiness portal is published from `assessment/` and uses bundled
-static JSON files in `assessment/data/`.
+static JSON files in `assessment/data/`. Dev access uses username `Aegis` and
+password `Aegis2026!`.
 
 ## Deploy
 
@@ -28,6 +29,8 @@ Required Netlify environment variables:
 - `SLACK_SIGNING_SECRET`
 - `GITHUB_TOKEN`
 - `GITHUB_REPO=jsnyder-cyber/aegis-compliance-solutions-site`
+- `APPS_SCRIPT_SCAN_WEBHOOK_URL`
+- `APPS_SCRIPT_SCAN_TOKEN`
 
 The intended publishing flow is: Slack request, Codex branch, Netlify preview,
 Jeff approval, merge or push to `main`, production deploy.
